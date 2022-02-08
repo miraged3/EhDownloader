@@ -1,5 +1,7 @@
 import logging
+import os
 import sys
+import urllib.request
 from configparser import ConfigParser
 
 from selenium import webdriver
@@ -8,6 +10,8 @@ from selenium.webdriver.common.by import By
 
 
 def download(tag, tab):
+    os.makedirs(tag, exist_ok=True)
+    os.chdir(tag)
     logging.info('Searching your tag...')
     tab.get('https://exhentai.org/?f_search=' + tag)
     pages = tab.find_elements(by=By.XPATH, value='//table[@class="ptb"]/tbody/tr/td')
@@ -30,11 +34,44 @@ def download(tag, tab):
             link = tr.find_element(by=By.XPATH, value='td[@class="gl3c glname"]/a').get_attribute('href')
             name = tr.find_element(by=By.XPATH, value='td[@class="gl3c glname"]/a/div[@class="glink"]').text
             logging.info('Downloading ' + name + '...')
-            download_single(link)
+            os.makedirs(name, exist_ok=True)
+            os.chdir(name)
+            download_single(link, tab)
+            os.chdir('..')
 
 
-def download_single(link):
-    print(link)
+def download_single(link, tab):
+    tab.execute_script('window.open("about:blank")')
+    tab.switch_to.window(tab.window_handles[1])
+    tab.get(link)
+    pages = tab.find_elements(by=By.XPATH, value='//table[@class="ptb"]/tbody/tr/td')
+    last_page = pages[len(pages) - 1].find_element(by=By.XPATH, value='//table[@class="ptb"]/tbody/tr/td[' + str(
+        len(pages) - 1) + ']/a')
+    logging.info(last_page.text + ' pages in total.')
+    current_page = int(last_page.text) - 1
+    for i in range(current_page, -1, -1):
+        logging.info('Switching page to ' + str(i + 1) + '...')
+        if current_page == 0:
+            tab.get(link)
+        else:
+            tab.get(link + '?p=' + str(i))
+        images = tab.find_elements(by=By.XPATH, value='//div[@class="gdtm"]/div/a')
+        for image in images:
+            download_image(image.get_attribute('href'), tab)
+    tab.close()
+    tab.switch_to.window(tab.window_handles[0])
+
+
+def download_image(link, tab):
+    logging.info('Downloading image ' + link + '...')
+    tab.execute_script('window.open("about:blank")')
+    tab.switch_to.window(tab.window_handles[2])
+    tab.get(link)
+    image_link = tab.find_element(by=By.XPATH, value='//div[@id="i3"]/a/img').get_attribute('src')
+    print(image_link)
+    urllib.request.urlretrieve(image_link, image_link.rpartition('/')[2])
+    tab.close()
+    tab.switch_to.window(tab.window_handles[1])
 
 
 config = ConfigParser()
