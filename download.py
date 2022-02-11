@@ -3,6 +3,7 @@ import os
 import sys
 import urllib.request
 from configparser import ConfigParser
+from pathlib import Path
 
 from selenium import webdriver
 from selenium.common.exceptions import WebDriverException
@@ -74,6 +75,11 @@ def download_image(link, tab):
     tab.switch_to.window(tab.window_handles[1])
 
 
+def check_tags(tag):
+    logging.info(tag)
+    pass
+
+
 config = ConfigParser()
 config.read('config.cfg')
 LOG_FORMAT = "%(asctime)s - %(levelname)s - %(message)s"
@@ -101,6 +107,8 @@ browser.add_cookie({'name': 'ipb_pass_hash', 'value': config.get('cookies', 'ipb
 browser.add_cookie({'name': 'igneous', 'value': config.get('cookies', 'igneous')})
 browser.get('https://exhentai.org/')
 tags = input('Please input tags, use + to split every tag.\n')
+if Path(tags).exists():
+    check_tags(tags)
 download(tags, browser)
 input('Finished.\nPress Enter to exit...')
 browser.quit()
