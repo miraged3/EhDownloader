@@ -13,6 +13,12 @@ from selenium.webdriver.common.by import By
 def download(tag, tab):
     os.makedirs(tag, exist_ok=True)
     os.chdir(tag)
+    config_file = open(tag + 'ini', 'w')
+    config_file.write('')
+    config_file.close()
+    config_tag = ConfigParser()
+    config_tag.add_section('progress')
+    config_tag.write(open(tag + 'ini', 'w'))
     logging.info('Searching your tag...')
     tab.get('https://exhentai.org/?f_search=' + tag)
     pages = tab.find_elements(by=By.XPATH, value='//table[@class="ptb"]/tbody/tr/td')
@@ -21,6 +27,7 @@ def download(tag, tab):
     logging.info(last_page.text + ' pages in total.')
     current_page = int(last_page.text) - 1
     for i in range(current_page, -1, -1):
+        config_tag.set('progress', 'current_page', str(current_page))
         logging.info('Switching page to ' + str(i + 1) + '...')
         if current_page == 0:
             tab.get('https://exhentai.org/?f_search=' + tag)
@@ -109,6 +116,8 @@ browser.get('https://exhentai.org/')
 tags = input('Please input tags, use + to split every tag.\n')
 if Path(tags).exists():
     check_tags(tags)
+else:
+    download(tags, browser)
 download(tags, browser)
 input('Finished.\nPress Enter to exit...')
 browser.quit()
