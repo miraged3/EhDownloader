@@ -105,16 +105,21 @@ def check_tags(tag, tab):
     logging.info(last_page.text + ' pages in total.')
     is_found = False
     found_page = 0
-    for current_page in range(int(config_tag.get('progress', 'current_page')), last_page):
+    for current_page in range(int(config_tag.get('progress', 'current_page')), int(last_page.text)):
         tab.get('https://exhentai.org/?page=' + str(current_page) + '&f_search=' + tag)
         trs = tab.find_elements(by=By.XPATH, value='//table[@class="itg gltc"]/tbody/tr')
+        jump_title = True
         for tr in trs:
-            if tag != tr.find_element(by=By.XPATH, value='td[@class="gl3c glname"]/a/div[@class="glink"]').text:
+            if jump_title:
+                jump_title = False
+                continue
+            if config_tag.get('progress', 'current_name') != tr.find_element(by=By.XPATH,
+                                                                             value='td[@class="gl3c glname"]/a/div[@class="glink"]').text:
                 continue
             else:
                 is_found = True
                 found_page = current_page
-                logging.info('Found the last downloaded location at page ' + str(current_page))
+                logging.info('Found the last downloaded location at page ' + str(current_page + 1))
                 break
     if not is_found:
         logging.info('Cannot find the position of last download!')
@@ -130,11 +135,11 @@ logging.basicConfig(level=logging.INFO, format=LOG_FORMAT, datefmt=DATE_FORMAT)
 logging.info('Checking Chrome Driver...')
 driverLocation = "chromedriver"
 options = webdriver.ChromeOptions()
-options.add_argument('--headless')
-options.add_argument('--disable-dev-shm-usage')
-options.add_argument('--no-sandbox')
-options.add_argument('--disable-gpu')
-options.add_argument("--window-size=1920,3840")
+# options.add_argument('--headless')
+# options.add_argument('--disable-dev-shm-usage')
+# options.add_argument('--no-sandbox')
+# options.add_argument('--disable-gpu')
+# options.add_argument("--window-size=1920,3840")
 
 try:
     browser = webdriver.Chrome(executable_path=driverLocation, options=options)
