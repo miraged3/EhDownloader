@@ -82,7 +82,6 @@ def download_image(link, tab):
     tab.switch_to.window(tab.window_handles[2])
     tab.get(link)
     image_link = tab.find_element(by=By.XPATH, value='//div[@id="i3"]/a/img').get_attribute('src')
-    print(image_link)
     urllib.request.urlretrieve(image_link, image_link.rpartition('/')[2])
     tab.close()
     tab.switch_to.window(tab.window_handles[1])
