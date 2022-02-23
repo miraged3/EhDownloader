@@ -2,7 +2,7 @@ import logging
 import os
 import sys
 import urllib.request
-from configparser import ConfigParser
+from configparser import ConfigParser, NoOptionError
 from pathlib import Path
 
 from selenium import webdriver
@@ -113,8 +113,13 @@ def check_tags(tag, tab):
             if jump_title:
                 jump_title = False
                 continue
-            if config_tag.get('progress', 'current_name') != tr.find_element(by=By.XPATH,
-                                                                             value='td[@class="gl3c glname"]/a/div[@class="glink"]').text:
+            try:
+                current_name = config_tag.get('progress', 'current_name')
+            except NoOptionError:
+                logging.info('Unable to find a progress file!\nPlease delete the tag name folder and try again!')
+                break
+            if current_name is not tr.find_element(by=By.XPATH,
+                                                   value='td[@class="gl3c glname"]/a/div[@class="glink"]').text:
                 continue
             else:
                 is_found = True
@@ -127,36 +132,45 @@ def check_tags(tag, tab):
         download(tag, tab, True, found_page, config_tag)
 
 
-config = ConfigParser()
-config.read('config.cfg')
-LOG_FORMAT = "%(asctime)s - %(levelname)s - %(message)s"
-DATE_FORMAT = "%Y/%m/%d %H:%M:%S"
-logging.basicConfig(level=logging.INFO, format=LOG_FORMAT, datefmt=DATE_FORMAT)
-logging.info('Checking Chrome Driver...')
-driverLocation = "chromedriver"
-options = webdriver.ChromeOptions()
-# options.add_argument('--headless')
-# options.add_argument('--disable-dev-shm-usage')
-# options.add_argument('--no-sandbox')
-# options.add_argument('--disable-gpu')
-# options.add_argument("--window-size=1920,3840")
+def main(tags=None):
+    logging.info('Loading... Make sure you have a stable internet connection.')
+    browser.get('https://exhentai.org/')
+    browser.add_cookie({'name': 'ipb_member_id', 'value': config.get('cookies', 'ipb_member_id')})
+    browser.add_cookie({'name': 'ipb_pass_hash', 'value': config.get('cookies', 'ipb_pass_hash')})
+    browser.add_cookie({'name': 'igneous', 'value': config.get('cookies', 'igneous')})
+    browser.get('https://exhentai.org/')
+    if tags is None:
+        tags = input('Please input tags, use + to split every tag.\n')
+    if Path(tags).exists():
+        check_tags(tags, browser)
+    else:
+        download(tags, browser)
+    input('Script finished.\nPress Enter to exit...')
+    browser.quit()
 
-try:
-    browser = webdriver.Chrome(executable_path=driverLocation, options=options)
-except WebDriverException:
-    logging.error('Chrome Driver not found. Please download it from https://chromedriver.chromium.org/downloads')
-    input('Press Enter to exit...')
-    sys.exit(1)
-logging.info('Loading... Make sure you have a stable internet connection.')
-browser.get('https://exhentai.org/')
-browser.add_cookie({'name': 'ipb_member_id', 'value': config.get('cookies', 'ipb_member_id')})
-browser.add_cookie({'name': 'ipb_pass_hash', 'value': config.get('cookies', 'ipb_pass_hash')})
-browser.add_cookie({'name': 'igneous', 'value': config.get('cookies', 'igneous')})
-browser.get('https://exhentai.org/')
-tags = input('Please input tags, use + to split every tag.\n')
-if Path(tags).exists():
-    check_tags(tags, browser)
-else:
-    download(tags, browser)
-input('Script finished.\nPress Enter to exit...')
-browser.quit()
+
+if __name__ == '__main__':
+    config = ConfigParser()
+    config.read('config.cfg')
+    LOG_FORMAT = "%(asctime)s - %(levelname)s - %(message)s"
+    DATE_FORMAT = "%Y/%m/%d %H:%M:%S"
+    logging.basicConfig(level=logging.INFO, format=LOG_FORMAT, datefmt=DATE_FORMAT)
+    logging.info('Checking Chrome Driver...')
+    driverLocation = "chromedriver"
+    options = webdriver.ChromeOptions()
+    options.add_argument('--headless')
+    options.add_argument('--disable-dev-shm-usage')
+    options.add_argument('--no-sandbox')
+    options.add_argument('--disable-gpu')
+    options.add_argument("--window-size=1920,3840")
+    try:
+        browser = webdriver.Chrome(executable_path=driverLocation, options=options)
+    except WebDriverException:
+        logging.error('Chrome Driver not found. Please download it from https://chromedriver.chromium.org/downloads')
+        input('Press Enter to exit...')
+        sys.exit(1)
+    try:
+        logging.info('Tag: ' + sys.argv[1])
+        main(sys.argv[1])
+    except IndexError:
+        main()
